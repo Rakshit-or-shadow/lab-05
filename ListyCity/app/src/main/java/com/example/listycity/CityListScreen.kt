@@ -26,12 +26,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.listycity.ui.theme.ListyCityTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun CityListScreen(
     cities: List<City>,
     onAddCity: (City) -> Unit,
     onUpdateCity: (City, City) -> Unit,
+    onDeleteCity: (City) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var newCityName by remember { mutableStateOf("") }
@@ -40,6 +45,8 @@ fun CityListScreen(
     var selectedCity by remember { mutableStateOf<City?>(null) }
     var editedCityName by remember { mutableStateOf("") }
     var editedProvinceName by remember { mutableStateOf("") }
+    var deleteMode by remember { mutableStateOf(false) }
+    var cityToDelete by remember { mutableStateOf<City?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -54,6 +61,7 @@ fun CityListScreen(
                         selectedCity = null
                         editedCityName = ""
                         editedProvinceName = ""
+                        deleteMode = false
                     }
                 }
             ) {
@@ -100,7 +108,7 @@ fun CityListScreen(
                         }
                     }
                 ) {
-                    Text("ADD CITY")
+                    Text("add city")
                 }
             }
         }
@@ -151,21 +159,25 @@ fun CityListScreen(
                         }
                     }
                 ) {
-                    Text("UPDATE CITY")
+                    Text("update city")
                 }
             }
         }
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
             itemsIndexed(cities) { index, city ->
                 CityRow(
                     city = city,
                     onClick = {
-                        showAddCityFields = false
-                        newCityName = ""
-                        newProvinceName = ""
-                        selectedCity = city
-                        editedCityName = city.name
-                        editedProvinceName = city.province
+                        if (deleteMode) {
+                            cityToDelete = city
+                        } else {
+                            showAddCityFields = false
+                            newCityName = ""
+                            newProvinceName = ""
+                            selectedCity = city
+                            editedCityName = city.name
+                            editedProvinceName = city.province
+                        }
                     }
                 )
                 if (index < cities.lastIndex) {
@@ -173,9 +185,72 @@ fun CityListScreen(
                 }
             }
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Button(
+                modifier = Modifier.padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                onClick = {
+                    deleteMode = !deleteMode
+
+                    if (deleteMode == true) {
+                        showAddCityFields = false
+                        selectedCity = null
+                    }
+                }
+            ) {
+                if (deleteMode == true) {
+                    Text("cancel delete")
+                } else {
+                    Text("delete city")
+                }
+            }
+        }
+    }
+
+    val city = cityToDelete
+
+    if (city != null) {
+        AlertDialog(
+            onDismissRequest = {
+                cityToDelete = null
+            },
+
+            title = {
+                Text("Delete city")
+            },
+
+            text = {
+                Text("Delete " + city.name + ", " + city.province + "?")
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteCity(city)
+                        cityToDelete = null
+                        deleteMode = false
+                    }
+                ) {
+                    Text("delete")
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        cityToDelete = null
+                    }
+                ) {
+                    Text("cancel")
+                }
+            }
+        )
     }
 }
-
 
 @Composable
 fun CityRow(
@@ -213,7 +288,8 @@ fun CityListScreenPreview() {
                 City("Calgary", "AB")
             ),
             onAddCity = {},
-            onUpdateCity = { _, _ -> }
+            onUpdateCity = { _, _ -> },
+            onDeleteCity = {}
         )
     }
 }
